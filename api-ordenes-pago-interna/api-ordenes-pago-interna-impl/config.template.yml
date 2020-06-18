@@ -1,0 +1,8 @@
+region: us-east-1
+env: BUILD_ENV
+role: BUILD_LAMBDA_ROLE_ARN
+accessControlAllowOrigin: "*"
+apiId: BUILD_API_ID
+apiRootId: BUILD_API_ROOT_ID
+cognito: BUILD_COGNITO_POOL_ARN
+cuenta: 080540609156

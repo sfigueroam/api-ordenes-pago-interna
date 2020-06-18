@@ -1,0 +1,168 @@
+service: api-ordenes-pago-interna
+
+custom: ${file(./config.yml)}
+
+provider:
+  name: aws
+  runtime: nodejs10.x
+  region: us-east-1
+  stage: ${opt:stage, 'v1'}
+  role: ${self:custom.role}
+  stackName: tgr-${self:custom.env}-${self:service}
+  stackTags: 
+    Application: ${self:service}
+    Env: ${self:custom.env}
+  apiGateway:
+    restApiId: ${self:custom.apiId}
+    restApiRootResourceId: ${self:custom.apiRootId}
+  environment:
+    prefix: tgr-${self:custom.env}-${self:service}
+    BUCKET_NAME: tgr-${self:custom.env}-core-ordenes-pago-data
+    ENV: ${self:custom.env}
+    cuenta: ${self:custom.cuenta}
+
+package:
+  exclude:
+  - package-lock.json
+  - package.json
+
+functions:   
+  getResumenOrdenPago:
+    name: tgr-${self:custom.env}-${self:service}-getResumenOrdenPago
+    handler: getResumenOrdenPago.handler
+    timeout: 30
+    events:
+      - http:
+          path: resumen/pagos
+          method: get
+          #cors: true
+          request:
+            parameters:
+              querystrings:
+                rut: true
+                anio: true
+                mes: true
+                estado: true
+          authorizer:
+            arn: ${self:custom.cognito}
+            scopes:
+              - op3/certificado-pago
+  getResumenMandante:
+    name: tgr-${self:custom.env}-${self:service}-getResumenMandante
+    handler: getResumenMandante.handler
+    timeout: 30
+    events:
+      - http:
+          path: resumenMandante/pagos
+          method: get
+          #cors: true
+          request:
+            parameters:
+              querystrings:
+                rut: true
+                anio: true
+                mes: true
+                estado: true
+          authorizer:
+            arn: ${self:custom.cognito}
+            scopes:
+              - op3/certificado-pago
+  getDetalleOrdenPago:
+    name: tgr-${self:custom.env}-${self:service}-getDetalleOrdenPago
+    handler: getDetalleOrdenPago.handler
+    timeout: 30
+    events:
+      - http:
+          path: detalle/pagos
+          method: get
+          #cors: true
+          request:
+            parameters:
+              querystrings:
+                id: true
+          authorizer:
+            arn: ${self:custom.cognito}
+            scopes:
+              - op3/certificado-pago
+  getDetalleMandante:
+    name: tgr-${self:custom.env}-${self:service}-getDetalleMandante
+    handler: getDetalleMandante.handler
+    timeout: 30
+    events:
+      - http:
+          path: detalleMandante/pagos
+          method: get
+          #cors: true
+          request:
+            parameters:
+              querystrings:
+                id: true
+          authorizer:
+            arn: ${self:custom.cognito}
+            scopes:
+              - op3/certificado-pago
+  getCertificateData:
+    name: tgr-${self:custom.env}-${self:service}-getCertificateData
+    handler: getCertificateData.handler
+    timeout: 30
+    events:
+      - http:
+          path: resumen/certificado/{id}/{rut}
+          method: get
+          authorizer:
+            arn: ${self:custom.cognito}
+            scopes:
+              - op3/certificado-pago
+  getDetalleBuscar:
+    name: tgr-${self:custom.env}-${self:service}-getDetalleBuscar
+    handler: getDetalleBuscar.handler
+    timeout: 30
+    events:
+      - http:
+          path: detalle/buscar
+          method: post
+          #cors: true
+          authorizer:
+            arn: ${self:custom.cognito}
+            scopes:
+              - op3/certificado-pago
+  updateFormularioFisico:
+    name: tgr-${self:custom.env}-${self:service}-updateFormularioFisico
+    handler: updateFormularioFisico.handler
+    timeout: 30
+    events:
+      - http:
+          path: generic/formulario-fisico
+          method: post
+          #cors: true
+          # authorizer:
+          #   arn: ${self:custom.cognito}
+          #   scopes:
+          #     - op3/certificado-pago
+  procesoUpdate:
+    name: tgr-${self:custom.env}-${self:service}-procesoUpdate
+    handler: procesoUpdate.handler
+    timeout: 60
+    
+# stepFunctions:
+#   stateMachines:
+#     updateFFStepFunc:
+#       name: tgr-${self:custom.env}-${self:service}-updateFF-step-func
+#       definition:
+#         Comment: "A Hello World example of the Amazon States Language using an AWS Lambda Function"
+#         StartAt: procesoUpdate
+#         States:
+#           procesoUpdate:
+#             Type: Task
+#             Resource: arn:aws:lambda:us-east-1:${self:custom.cuenta}:function:tgr-${self:custom.env}-${self:service}-procesoUpdate
+#             Next: continuar?
+#           continuar?:
+#             Type: Choice
+#             Choices: [{"Variable": "$.continuar","BooleanEquals": true,"Next": "procesoUpdate"}]
+#             Default: Finalizar
+#           Finalizar: 
+#             Type: Pass
+#             End: true
+
+# plugins:
+#   - serverless-step-functions
